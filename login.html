@@ -3,86 +3,86 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login Admin - E-Absensi</title>
+  <title>Login - E-Absensi</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex items-center justify-center p-4">
 
-  <div class="max-w-sm w-full bg-slate-800 rounded-3xl p-8 border border-slate-700 shadow-2xl">
-    <div class="text-center mb-6">
-      <div class="inline-block p-3 bg-emerald-500/10 rounded-2xl text-emerald-400 text-3xl mb-2">🔐</div>
-      <h2 class="text-2xl font-bold text-white">Login Admin</h2>
-      <p class="text-xs text-slate-400 mt-1">Masukkan kredensial untuk akses dashboard</p>
+  <div class="bg-slate-800 border border-slate-700 p-6 sm:p-8 rounded-2xl shadow-2xl w-full max-w-md space-y-6">
+    <div class="text-center space-y-2">
+      <span class="text-4xl">🔐</span>
+      <h2 class="text-2xl font-bold text-white">Portal E-Absensi</h2>
+      <p class="text-xs text-slate-400">Masukkan akun Admin atau NISN Siswa kamu</p>
     </div>
 
-    <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
+    <form onsubmit="handleLogin(event)" class="space-y-4">
       <div>
-        <label class="block text-xs font-medium text-slate-400 mb-1">Username</label>
-        <input type="text" id="username" required placeholder="Masukkan username" 
-               class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-500 text-white transition">
+        <label class="block text-xs font-medium text-slate-300 mb-1">Username / NISN</label>
+        <input type="text" id="username" required placeholder="Contoh: fanka / 12345678" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500">
       </div>
 
       <div>
-        <label class="block text-xs font-medium text-slate-400 mb-1">Password</label>
-        <input type="password" id="password" required placeholder="••••••••" 
-               class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-500 text-white transition">
+        <label class="block text-xs font-medium text-slate-300 mb-1">Password</label>
+        <input type="password" id="password" required placeholder="••••••••" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500">
+        <span class="text-[10px] text-slate-500 mt-1 block">*Untuk Siswa, password default menggunakan NISN.</span>
       </div>
 
-      <div id="error-msg" class="hidden text-rose-400 text-xs text-center font-medium bg-rose-500/10 p-2 rounded-lg border border-rose-500/20">
-        Username atau Password Salah!
-      </div>
+      <div id="error-msg" class="hidden bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs p-3 rounded-xl text-center"></div>
 
-      <button type="submit" class="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold py-3 rounded-xl transition shadow-lg shadow-emerald-500/20 text-sm">
-        Masuk Dashboard →
+      <button type="submit" id="btn-submit" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-2.5 rounded-xl text-sm transition">
+        Masuk Sistem
       </button>
     </form>
-
-    <div class="mt-6 text-center">
-      <a href="index.html" class="text-xs text-slate-400 hover:text-emerald-400 transition">← Kembali ke Scanner</a>
-    </div>
   </div>
 
   <script>
-  // ⚠️ ISI URL APPS SCRIPT KAMU
-  const API_URL = "https://script.google.com/macros/s/AKfycbzUNayLthLLRwfms4CQHTqTKj3lKhyrhWwb7mOIbMHEIM4HkC0jbwVgy-MYJaV1WxNXcQ/exec";
-  function handleLogin(e) {
-    e.preventDefault();
-    const user = document.getElementById('username').value;
-    const pass = document.getElementById('password').value;
-    const errorMsg = document.getElementById('error-msg');
+    const API_URL = "https://script.google.com/macros/s/AKfycbzUNayLthLLRwfms4CQHTqTKj3lKhyrhWwb7mOIbMHEIM4HkC0jbwVgy-MYJaV1WxNXcQ/exec";
 
-    errorMsg.classList.add('hidden');
+    function handleLogin(e) {
+      e.preventDefault();
+      const user = document.getElementById("username").value;
+      const pass = document.getElementById("password").value;
+      const errorMsg = document.getElementById("error-msg");
+      const btn = document.getElementById("btn-submit");
 
-    // Kirim kredensial ke Apps Script untuk diperiksa
-    fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({
-        action: "loginAdmin",
-        username: user,
-        password: pass
+      errorMsg.classList.add("hidden");
+      btn.innerText = "Memeriksa...";
+      btn.disabled = true;
+
+      fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ action: "login", username: user, password: pass })
       })
-    })
-    .then(res => res.json())
-    .then(data => {
-      if (data.status === "success") {
-        // Simpan token unik hasil validasi server
-        localStorage.setItem("sessionToken", data.token);
-        localStorage.setItem("isLoggedIn", "true");
-        
-        // Redirect ke Dashboard
-        window.location.href = "dashboard.html";
-      } else {
-        errorMsg.innerText = data.message || "Username atau Password Salah!";
-        errorMsg.classList.remove('hidden');
-      }
-    })
-    .catch(err => {
-      console.error(err);
-      errorMsg.innerText = "Gagal terhubung ke server!";
-      errorMsg.classList.remove('hidden');
-    });
-  }
-</script>
+      .then(res => res.json())
+      .then(data => {
+        btn.innerText = "Masuk Sistem";
+        btn.disabled = false;
+
+        if (data.status === "success") {
+          localStorage.setItem("sessionToken", data.token);
+          localStorage.setItem("userRole", data.role);
+
+          if (data.role === "admin") {
+            localStorage.setItem("isLoggedIn", "true");
+            window.location.href = "dashboard.html";
+          } else {
+            localStorage.setItem("siswaNisn", data.nisn);
+            localStorage.setItem("siswaNama", data.nama);
+            window.location.href = "siswa.html";
+          }
+        } else {
+          errorMsg.innerText = data.message;
+          errorMsg.classList.remove("hidden");
+        }
+      })
+      .catch(err => {
+        btn.innerText = "Masuk Sistem";
+        btn.disabled = false;
+        errorMsg.innerText = "Gagal terhubung ke server!";
+        errorMsg.classList.remove("hidden");
+      });
+    }
+  </script>
 </body>
 </html>

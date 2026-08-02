@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Siswa - E-Absensi</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- PROTEKSI ROUTE GUARD SISWA -->
+  <script>
+    if (!localStorage.getItem("sessionToken") || localStorage.getItem("userRole") !== "siswa") {
+      window.location.replace("login.html");
+    }
+  </script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans p-4">
+
+  <div class="max-w-4xl mx-auto w-full space-y-6">
+
+    <!-- NAVBAR SISWA -->
+    <div class="flex justify-between items-center bg-slate-800 border border-slate-700 p-4 rounded-2xl">
+      <div>
+        <p class="text-xs text-slate-400">Selamat datang,</p>
+        <h2 id="nama-siswa" class="text-lg font-bold text-emerald-400">-</h2>
+        <p id="nisn-siswa" class="text-[10px] text-slate-500">NISN: -</p>
+      </div>
+      <button onclick="logoutSiswa()" class="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 px-3 py-1.5 rounded-xl text-xs font-semibold">
+        🚪 Keluar
+      </button>
+    </div>
+
+    <!-- STATISTIK PERIODIK (TABEL & PERSENTASE) -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      
+      <!-- PERMINGGU -->
+      <div class="bg-slate-800 border border-slate-700 p-4 rounded-2xl space-y-3">
+        <div class="flex justify-between items-center border-b border-slate-700 pb-2">
+          <h3 class="font-bold text-sm text-amber-400">📅 7 Hari Terakhir</h3>
+          <span id="p-minggu" class="bg-amber-500/10 text-amber-400 text-xs px-2 py-0.5 rounded font-bold">0%</span>
+        </div>
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <div>Hadir: <b id="m-hadir" class="text-emerald-400">0</b></div>
+          <div>Terlambat: <b id="m-terlambat" class="text-amber-400">0</b></div>
+          <div>Sakit: <b id="m-sakit" class="text-blue-400">0</b></div>
+          <div>Izin: <b id="m-izin" class="text-purple-400">0</b></div>
+          <div class="col-span-2">Alpa: <b id="m-alpa" class="text-rose-400">0</b></div>
+        </div>
+      </div>
+
+      <!-- PERBULAN -->
+      <div class="bg-slate-800 border border-slate-700 p-4 rounded-2xl space-y-3">
+        <div class="flex justify-between items-center border-b border-slate-700 pb-2">
+          <h3 class="font-bold text-sm text-blue-400">📆 Bulan Ini</h3>
+          <span id="p-bulan" class="bg-blue-500/10 text-blue-400 text-xs px-2 py-0.5 rounded font-bold">0%</span>
+        </div>
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <div>Hadir: <b id="b-hadir" class="text-emerald-400">0</b></div>
+          <div>Terlambat: <b id="b-terlambat" class="text-amber-400">0</b></div>
+          <div>Sakit: <b id="b-sakit" class="text-blue-400">0</b></div>
+          <div>Izin: <b id="b-izin" class="text-purple-400">0</b></div>
+          <div class="col-span-2">Alpa: <b id="b-alpa" class="text-rose-400">0</b></div>
+        </div>
+      </div>
+
+      <!-- PERTAHUN -->
+      <div class="bg-slate-800 border border-slate-700 p-4 rounded-2xl space-y-3">
+        <div class="flex justify-between items-center border-b border-slate-700 pb-2">
+          <h3 class="font-bold text-sm text-emerald-400">🎓 Tahun Ini</h3>
+          <span id="p-tahun" class="bg-emerald-500/10 text-emerald-400 text-xs px-2 py-0.5 rounded font-bold">0%</span>
+        </div>
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <div>Hadir: <b id="t-hadir" class="text-emerald-400">0</b></div>
+          <div>Terlambat: <b id="t-terlambat" class="text-amber-400">0</b></div>
+          <div>Sakit: <b id="t-sakit" class="text-blue-400">0</b></div>
+          <div>Izin: <b id="t-izin" class="text-purple-400">0</b></div>
+          <div class="col-span-2">Alpa: <b id="t-alpa" class="text-rose-400">0</b></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- TABEL RIWAYAT ABSENSI -->
+    <div class="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden shadow-xl">
+      <div class="p-4 border-b border-slate-700">
+        <h3 class="font-bold text-sm text-white">📋 Riwayat Kehadiran Lengkap</h3>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs text-slate-300">
+          <thead class="bg-slate-900 text-slate-400 uppercase text-[10px]">
+            <tr>
+              <th class="px-4 py-3">Tanggal / Waktu</th>
+              <th class="px-4 py-3">Status</th>
+              <th class="px-4 py-3">Keterangan</th>
+            </tr>
+          </thead>
+          <tbody id="tabel-riwayat-body" class="divide-y divide-slate-700/50">
+            <tr>
+              <td colspan="3" class="text-center py-6 text-slate-500">Memuat data kehadiran...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbzUNayLthLLRwfms4CQHTqTKj3lKhyrhWwb7mOIbMHEIM4HkC0jbwVgy-MYJaV1WxNXcQ/exec";
+
+    const nisn = localStorage.getItem("siswaNisn");
+    const nama = localStorage.getItem("siswaNama");
+
+    document.getElementById("nama-siswa").innerText = nama || "Siswa";
+    document.getElementById("nisn-siswa").innerText = "NISN: " + (nisn || "-");
+
+    function loadSiswaData() {
+      fetch(`${API_URL}?action=getSiswaRekap&nisn=${nisn}`)
+        .then(res => res.json())
+        .then(data => {
+          // Fill Mingguan
+          fillStats('m', data.mingguan);
+          document.getElementById('p-minggu').innerText = data.mingguan.persentase + "% Kehadiran";
+
+          // Fill Bulanan
+          fillStats('b', data.bulanan);
+          document.getElementById('p-bulan').innerText = data.bulanan.persentase + "% Kehadiran";
+
+          // Fill Tahunan
+          fillStats('t', data.tahunan);
+          document.getElementById('p-tahun').innerText = data.tahunan.persentase + "% Kehadiran";
+
+          // Fill Tabel
+          const tbody = document.getElementById("tabel-riwayat-body");
+          tbody.innerHTML = "";
+
+          if (data.riwayat.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="3" class="text-center py-6 text-slate-500">Belum ada riwayat absensi.</td></tr>`;
+            return;
+          }
+
+          data.riwayat.forEach(item => {
+            tbody.innerHTML += `
+              <tr class="hover:bg-slate-700/30">
+                <td class="px-4 py-3">${item.tanggal}<br><span class="text-[10px] text-slate-500">${item.waktu}</span></td>
+                <td class="px-4 py-3 font-semibold">${item.status}</td>
+                <td class="px-4 py-3 text-slate-400">${item.keterangan || "-"}</td>
+              </tr>
+            `;
+          });
+        });
+    }
+
+    function fillStats(prefix, statsObj) {
+      document.getElementById(`${prefix}-hadir`).innerText = statsObj.hadir || 0;
+      document.getElementById(`${prefix}-terlambat`).innerText = statsObj.terlambat || 0;
+      document.getElementById(`${prefix}-sakit`).innerText = statsObj.sakit || 0;
+      document.getElementById(`${prefix}-izin`).innerText = statsObj.izin || 0;
+      document.getElementById(`${prefix}-alpa`).innerText = statsObj.alpa || 0;
+    }
+
+    function logoutSiswa() {
+      localStorage.clear();
+      window.location.replace("login.html");
+    }
+
+    document.addEventListener("DOMContentLoaded", loadSiswaData);
+  </script>
+</body>
+</html>

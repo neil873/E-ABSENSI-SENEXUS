@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kios Scanner Absensi - Senexus</title>
+
+  <!-- PROTEKSI ROUTE GUARD (HANYA ADMIN) -->
+  <script>
+    if (!localStorage.getItem("sessionToken") || localStorage.getItem("userRole") !== "admin") {
+      alert("Akses Ditolak! Halaman scanner hanya dapat diaktifkan oleh Admin/Petugas.");
+      window.location.replace("login.html");
+    }
+  </script>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between font-sans">
+
+  <!-- HEADER -->
+  <header class="bg-slate-800/80 backdrop-blur border-b border-slate-700/80 px-6 py-4 flex justify-between items-center">
+    <div class="flex items-center space-x-3">
+      <span class="text-2xl">📷</span>
+      <div>
+        <h1 class="font-bold text-lg text-white">KIOS SCANNER <span class="text-emerald-400">SENEXUS</span></h1>
+        <p class="text-[10px] text-slate-400">Pos Presensi Kehadiran Siswa</p>
+      </div>
+    </div>
+    
+    <!-- Akses Dashboard Admin / Logout -->
+    <div class="flex items-center gap-2">
+      <a href="dashboard.html" class="bg-slate-700 hover:bg-slate-600 border border-slate-600 text-xs text-slate-200 px-3 py-2 rounded-xl transition">
+        📊 Dashboard Admin
+      </a>
+      <button onclick="logoutAdmin()" class="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs px-3 py-2 rounded-xl transition">
+        🚪 Keluar
+      </button>
+    </div>
+  </header>
+
+  <!-- SCANNER CONTAINER -->
+  <main class="max-w-md w-full mx-auto px-4 py-8">
+    <div class="bg-slate-800 rounded-3xl p-6 border border-slate-700 shadow-2xl space-y-4">
+      <div class="text-center">
+        <h2 class="text-xl font-bold text-emerald-400">Scan QR Code Absensi</h2>
+        <p class="text-xs text-slate-400 mt-1">Arahkan QR Code Kartu Siswa ke Kamera</p>
+      </div>
+
+      <!-- Video Box -->
+      <div id="reader" class="overflow-hidden rounded-2xl border-2 border-dashed border-emerald-500/40 bg-slate-950 min-h-[260px]"></div>
+
+      <!-- Status Notifikasi -->
+      <div id="status-box" class="hidden p-4 rounded-xl text-center font-medium transition-all text-sm">
+        <p id="status-text"></p>
+      </div>
+    </div>
+  </main>
+
+  <footer class="text-center py-4 text-xs text-slate-500">
+    &copy; 2026 E-Absensi Senexus System
+  </footer>
+
+  <!-- LOGIC SCANNER SCRIPT -->
+  <script src="scanner.js"></script>
+  
+  <script>
+    function logoutAdmin() {
+      localStorage.clear();
+      window.location.replace("login.html");
+    }
+  </script>
+</body>
+</html>

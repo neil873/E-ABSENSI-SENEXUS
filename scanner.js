@@ -1,40 +1,56 @@
 const API_URL = "https://script.google.com/macros/s/AKfycbzUNayLthLLRwfms4CQHTqTKj3lKhyrhWwb7mOIbMHEIM4HkC0jbwVgy-MYJaV1WxNXcQ/exec";
-let isScanning = false;
+let isProcessing = false;
 
 function onScanSuccess(decodedText) {
-  if (isScanning) return;
-  isScanning = true;
+  if (isProcessing) return; // Mencegah scan ganda secara tidak sengaja
+  isProcessing = true;
 
-  showStatus("⏳ Mengirim data absensi...", "bg-blue-600/20 text-blue-400 border border-blue-500/30");
+  const statusBox = document.getElementById("status-box");
+  const statusText = document.getElementById("status-text");
+
+  statusBox.classList.remove("hidden", "bg-emerald-500/20", "text-emerald-400", "bg-rose-500/20", "text-rose-400");
+  statusBox.classList.add("bg-amber-500/20", "text-amber-400");
+  statusText.innerText = "⏳ Memproses data absensi...";
 
   fetch(API_URL, {
     method: "POST",
-    mode: "no-cors",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
     body: JSON.stringify({ action: "scanQR", qrData: decodedText })
   })
-  .then(() => {
-    showStatus(`✓ Absen Berhasil! (Data: ${decodedText})`, "bg-emerald-600/20 text-emerald-400 border border-emerald-500/30");
-    setTimeout(() => { hideStatus(); isScanning = false; }, 3000);
+  .then(res => res.json())
+  .then(data => {
+    statusBox.classList.remove("bg-amber-500/20", "text-amber-400");
+
+    if (data.status === "success") {
+      statusBox.classList.add("bg-emerald-500/20", "text-emerald-400");
+      statusText.innerText = `✅ ${data.message}`;
+    } else {
+      statusBox.classList.add("bg-rose-500/20", "text-rose-400");
+      statusText.innerText = `❌ ${data.message || "Gagal mencatat absensi"}`;
+    }
+
+    // Beri jeda 3 detik sebelum siap scan siswa berikutnya
+    setTimeout(() => {
+      statusBox.classList.add("hidden");
+      isProcessing = false;
+    }, 3000);
   })
   .catch(err => {
-    showStatus("❌ Gagal Terhubung ke Server", "bg-red-600/20 text-red-400 border border-red-500/30");
-    setTimeout(() => { isScanning = false; }, 3000);
+    statusBox.classList.remove("bg-amber-500/20", "text-amber-400");
+    statusBox.classList.add("bg-rose-500/20", "text-rose-400");
+    statusText.innerText = "❌ Terjadi kesalahan jaringan!";
+    
+    setTimeout(() => {
+      statusBox.classList.add("hidden");
+      isProcessing = false;
+    }, 3000);
   });
 }
 
-function showStatus(text, bgClass) {
-  const box = document.getElementById("status-box");
-  document.getElementById("status-text").innerText = text;
-  box.className = `p-4 rounded-xl text-center font-medium ${bgClass}`;
-  box.classList.remove("hidden");
-}
-
-function hideStatus() {
-  document.getElementById("status-box").classList.add("hidden");
-}
-
-document.addEventListener("DOMContentLoaded", function() {
-  const scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: { width: 220, height: 220 } }, false);
-  scanner.render(onScanSuccess);
+// Inisialisasi Kamera HTML5 QR Code
+const html5QrCode = new Html5QrcodeScanner("reader", { 
+  fps: 10, 
+  qrbox: { width: 220, height: 220 } 
 });
+
+html5QrCode.render(onScanSuccess);

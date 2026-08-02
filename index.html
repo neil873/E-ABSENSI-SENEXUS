@@ -3,47 +3,169 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Scanner Absensi - Senexus</title>
+  <title>Sistem Informasi Absensi Sekolah</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/html5-qrcode"></script>
-  <link rel="stylesheet" href="style.css">
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between font-sans">
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans p-4">
 
-  <!-- HEADER -->
-  <header class="bg-slate-800/80 backdrop-blur border-b border-slate-700/80 px-6 py-4 flex justify-between items-center">
-    <div class="flex items-center space-x-3">
-      <span class="text-2xl">📱</span>
-      <h1 class="font-bold text-lg text-white">E-ABSENSI <span class="text-emerald-400">SENEXUS</span></h1>
+  <div class="max-w-5xl mx-auto w-full space-y-6">
+
+    <!-- HEADER / NAVBAR -->
+    <div class="flex justify-between items-center bg-slate-800 border border-slate-700 p-4 rounded-2xl shadow-lg">
+      <div>
+        <h1 class="text-xl font-bold text-white flex items-center gap-2">
+          <span>📊</span> Portal Kehadiran Siswa
+        </h1>
+        <p class="text-xs text-slate-400">Ringkasan statistik dan rekapitulasi presensi harian</p>
+      </div>
+      <a href="login.html" class="bg-emerald-500 hover:bg-emerald-600 text-slate-950 px-4 py-2 rounded-xl text-xs font-bold transition">
+        🔐 Masuk Portal / Scan
+      </a>
     </div>
-    <!-- Tombol menuju halaman Login Dashboard -->
-    <a href="login.html" class="bg-slate-700 hover:bg-slate-600 border border-slate-600 text-xs text-slate-200 px-3 py-2 rounded-xl transition">
-      🔒 Login Admin
-    </a>
-  </header>
 
-  <!-- SCANNER CONTAINER -->
-  <main class="max-w-md w-full mx-auto px-4 py-8">
-    <div class="bg-slate-800 rounded-3xl p-6 border border-slate-700 shadow-2xl">
-      <div class="text-center mb-6">
-        <h2 class="text-xl font-bold text-emerald-400">Scan QR Code Absensi</h2>
-        <p class="text-xs text-slate-400 mt-1">Arahkan QR Code Siswa ke Kamera</p>
+    <!-- CARDS STATISTIK GLOBAL (MINGGU, BULAN, TAHUN) -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      
+      <!-- PERMINGGU -->
+      <div class="bg-slate-800 border border-slate-700 p-5 rounded-2xl space-y-3 shadow-md">
+        <div class="flex justify-between items-center border-b border-slate-700 pb-2">
+          <h3 class="font-bold text-sm text-amber-400">📅 Stat. 7 Hari Terakhir</h3>
+          <span id="pub-p-minggu" class="bg-amber-500/10 text-amber-400 text-xs px-2 py-0.5 rounded font-bold">0%</span>
+        </div>
+        <div class="grid grid-cols-2 gap-2 text-xs text-slate-300">
+          <div>Hadir: <b id="pub-m-hadir" class="text-emerald-400">0</b></div>
+          <div>Terlambat: <b id="pub-m-terlambat" class="text-amber-400">0</b></div>
+          <div>Sakit: <b id="pub-m-sakit" class="text-blue-400">0</b></div>
+          <div>Izin: <b id="pub-m-izin" class="text-purple-400">0</b></div>
+          <div class="col-span-2">Alpa: <b id="pub-m-alpa" class="text-rose-400">0</b></div>
+        </div>
       </div>
 
-      <!-- Video Box -->
-      <div id="reader" class="overflow-hidden rounded-2xl border-2 border-dashed border-emerald-500/40 bg-slate-950 mb-4 min-h-[260px]"></div>
+      <!-- PERBULAN -->
+      <div class="bg-slate-800 border border-slate-700 p-5 rounded-2xl space-y-3 shadow-md">
+        <div class="flex justify-between items-center border-b border-slate-700 pb-2">
+          <h3 class="font-bold text-sm text-blue-400">📆 Stat. Bulan Ini</h3>
+          <span id="pub-p-bulan" class="bg-blue-500/10 text-blue-400 text-xs px-2 py-0.5 rounded font-bold">0%</span>
+        </div>
+        <div class="grid grid-cols-2 gap-2 text-xs text-slate-300">
+          <div>Hadir: <b id="pub-b-hadir" class="text-emerald-400">0</b></div>
+          <div>Terlambat: <b id="pub-b-terlambat" class="text-amber-400">0</b></div>
+          <div>Sakit: <b id="pub-b-sakit" class="text-blue-400">0</b></div>
+          <div>Izin: <b id="pub-b-izin" class="text-purple-400">0</b></div>
+          <div class="col-span-2">Alpa: <b id="pub-b-alpa" class="text-rose-400">0</b></div>
+        </div>
+      </div>
 
-      <!-- Status Notifikasi -->
-      <div id="status-box" class="hidden p-4 rounded-xl text-center font-medium transition-all text-sm">
-        <p id="status-text"></p>
+      <!-- PERTAHUN -->
+      <div class="bg-slate-800 border border-slate-700 p-5 rounded-2xl space-y-3 shadow-md">
+        <div class="flex justify-between items-center border-b border-slate-700 pb-2">
+          <h3 class="font-bold text-sm text-emerald-400">🎓 Stat. Tahun Ini</h3>
+          <span id="pub-p-tahun" class="bg-emerald-500/10 text-emerald-400 text-xs px-2 py-0.5 rounded font-bold">0%</span>
+        </div>
+        <div class="grid grid-cols-2 gap-2 text-xs text-slate-300">
+          <div>Hadir: <b id="pub-t-hadir" class="text-emerald-400">0</b></div>
+          <div>Terlambat: <b id="pub-t-terlambat" class="text-amber-400">0</b></div>
+          <div>Sakit: <b id="pub-t-sakit" class="text-blue-400">0</b></div>
+          <div>Izin: <b id="pub-t-izin" class="text-purple-400">0</b></div>
+          <div class="col-span-2">Alpa: <b id="pub-t-alpa" class="text-rose-400">0</b></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- TABEL LOG KEHADIRAN TERAKHIR (LENGKAP DENGAN KETERANGAN) -->
+    <div class="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden shadow-xl">
+      <div class="p-4 border-b border-slate-700 flex justify-between items-center">
+        <h3 class="font-bold text-sm text-white">📋 Log Kehadiran Terkini</h3>
+        <span class="text-[10px] text-slate-400">*Menampilkan riwayat absensi terbaru</span>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs text-slate-300">
+          <thead class="bg-slate-900 text-slate-400 uppercase text-[10px]">
+            <tr>
+              <th class="px-4 py-3">Tanggal / Waktu</th>
+              <th class="px-4 py-3">Nama / NISN</th>
+              <th class="px-4 py-3">Status</th>
+              <th class="px-4 py-3">Keterangan / Alasan</th>
+            </tr>
+          </thead>
+          <tbody id="tabel-publik-body" class="divide-y divide-slate-700/50">
+            <tr>
+              <td colspan="4" class="text-center py-6 text-slate-500">Memuat data rekapitulasi...</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
-  </main>
 
-  <footer class="text-center py-4 text-xs text-slate-500">
-    &copy; 2026 E-Absensi Senexus System
-  </footer>
+  </div>
 
-  <script src="scanner.js"></script>
+  <script src="dashboard.js"></script>
+  <script>
+    function loadPublicData() {
+      // 1. Ambil Log Detail Kehadiran Terkini
+      fetch(`${API_URL}?action=getDetailRekap`)
+        .then(res => res.json())
+        .then(data => {
+          const tbody = document.getElementById("tabel-publik-body");
+          tbody.innerHTML = "";
+
+          if (!data || data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-slate-500">Belum ada data absensi.</td></tr>`;
+            return;
+          }
+
+          data.forEach(item => {
+            let badgeColor = "text-slate-400";
+            if (item.status === "Hadir") badgeColor = "text-emerald-400";
+            else if (item.status === "Terlambat") badgeColor = "text-amber-400";
+            else if (item.status === "Sakit") badgeColor = "text-blue-400";
+            else if (item.status === "Izin") badgeColor = "text-purple-400";
+            else if (item.status === "Alpa") badgeColor = "text-rose-400";
+
+            tbody.innerHTML += `
+              <tr class="hover:bg-slate-700/30">
+                <td class="px-4 py-3">${item.tanggal}<br><span class="text-[10px] text-slate-500">${item.waktu}</span></td>
+                <td class="px-4 py-3 font-semibold text-white">${item.nama}<br><span class="text-[10px] text-slate-400">${item.nisn}</span></td>
+                <td class="px-4 py-3 font-bold ${badgeColor}">${item.status}</td>
+                <td class="px-4 py-3 text-slate-300">${item.keterangan || "-"}</td>
+              </tr>
+            `;
+          });
+        })
+        .catch(err => console.error("Error loading detail:", err));
+
+      // 2. Ambil Statistik Global Periodik (Mingguan, Bulanan, Tahunan)
+      fetch(`${API_URL}?action=getGlobalRekap`)
+        .then(res => res.json())
+        .then(res => {
+          if (!res || !res.mingguan) return;
+
+          // Card Perminggu
+          fillStatsUI('pub-m', res.mingguan);
+          document.getElementById('pub-p-minggu').innerText = (res.mingguan.persentase || 0) + "% Kehadiran";
+
+          // Card Perbulan
+          fillStatsUI('pub-b', res.bulanan);
+          document.getElementById('pub-p-bulan').innerText = (res.bulanan.persentase || 0) + "% Kehadiran";
+
+          // Card Pertahun
+          fillStatsUI('pub-t', res.tahunan);
+          document.getElementById('pub-p-tahun').innerText = (res.tahunan.persentase || 0) + "% Kehadiran";
+        })
+        .catch(err => console.error("Error loading rekap:", err));
+    }
+
+    function fillStatsUI(prefix, obj) {
+      if (!obj) return;
+      document.getElementById(`${prefix}-hadir`).innerText = obj.hadir || 0;
+      document.getElementById(`${prefix}-terlambat`).innerText = obj.terlambat || 0;
+      document.getElementById(`${prefix}-sakit`).innerText = obj.sakit || 0;
+      document.getElementById(`${prefix}-izin`).innerText = obj.izin || 0;
+      document.getElementById(`${prefix}-alpa`).innerText = obj.alpa || 0;
+    }
+
+    document.addEventListener("DOMContentLoaded", loadPublicData);
+  </script>
 </body>
 </html>
