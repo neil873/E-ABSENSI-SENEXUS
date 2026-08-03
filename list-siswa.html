@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rekap Kehadiran Siswa - Senexus</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen p-4 md:p-6 font-sans">
+
+  <div class="max-w-5xl mx-auto space-y-6">
+
+    <!-- HEADER PAGE -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-800 border border-slate-700 p-5 rounded-2xl shadow-xl gap-4">
+      <div>
+        <h1 class="text-xl font-bold text-amber-400 flex items-center gap-2">
+          <span>👥</span> Rekap Kehadiran List Siswa
+        </h1>
+        <p class="text-xs text-slate-400 mt-1">Matriks Presensi: Tahun ➔ Bulan ➔ Minggu ➔ Hari (Senin - Jumat)</p>
+      </div>
+      <a href="index.html" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1">
+        ⬅ Kembali ke Dashboard
+      </a>
+    </div>
+
+    <!-- SEARCH BAR -->
+    <div class="bg-slate-800 border border-slate-700 p-4 rounded-2xl shadow-md">
+      <div class="relative">
+        <input type="text" id="searchSiswaList" 
+               class="w-full bg-slate-900 border border-slate-700 text-sm text-slate-200 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-amber-400" 
+               placeholder="Cari NISN atau Nama Siswa..." onkeyup="searchCardSiswa()">
+        <span class="absolute left-3 top-3.5 text-slate-400">🔍</span>
+      </div>
+    </div>
+
+    <!-- CONTAINER LIST SISWA -->
+    <div id="containerListSiswa" class="space-y-4">
+      <div class="text-center py-12 text-slate-500 bg-slate-800 border border-slate-700 rounded-2xl">
+        ⏳ Memuat Data Siswa & Memetakan Absensi...
+      </div>
+    </div>
+
+  </div>
+
+  <script src="dashboard.js"></script>
+  <script>
+    const namaBulanList = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+    const hariMap = { 1: "Senin", 2: "Selasa", 3: "Rabu", 4: "Kamis", 5: "Jumat" };
+
+    async function load35Siswa() {
+      const container = document.getElementById('containerListSiswa');
+      try {
+        // Cukup panggil getDetailRekap yang terbukti SUDAH JALAN di dashboard.js kamu
+        const resRekap = await fetch(`${API_URL}?action=getDetailRekap`).then(r => r.json());
+        const rekapAbsen = Array.isArray(resRekap) ? resRekap : [];
+
+        if (rekapAbsen.length === 0) {
+          container.innerHTML = `<div class="text-center py-8 text-rose-400 bg-slate-800 border border-slate-700 rounded-2xl">Belum ada data rekap absensi di Google Sheets.</div>`;
+          return;
+        }
+
+        // Ekstrak Master Siswa Unik dari Data Rekap Absen
+        const mapSiswa = new Map();
+        rekapAbsen.forEach(item => {
+          if (item.nisn && !mapSiswa.has(String(item.nisn).trim())) {
+            mapSiswa.set(String(item.nisn).trim(), {
+              nisn: String(item.nisn).trim(),
+              nama: item.nama || "Siswa"
+            });
+          }
+        });
+
+        const masterSiswa = Array.from(mapSiswa.values());
+        renderMatrixUI(masterSiswa, rekapAbsen);
+
+      } catch (err) {
+        console.error("Error loading data:", err);
+        container.innerHTML = `<div class="text-center py-8 text-rose-400 bg-slate-800 border border-slate-700 rounded-2xl">❌ Gagal koneksi ke server Apps Script. Periksa API_URL di dashboard.js!</div>`;
+      }
+    }
+
+    function renderMatrixUI(masterSiswa, rekapAbsen) {
+      const container = document.getElementById('containerListSiswa');
+      container.innerHTML = "";
+
+      // 1. Hitung Total Hari Efektif Sekolah yang sudah tercatat
+      const tanggalUnik = [...new Set(rekapAbsen.map(r => String(r.tanggal).trim()))].filter(Boolean);
+      const totalHariEfektif = tanggalUnik.length > 0 ? tanggalUnik.length : 1;
+
+      // 2. Buat Struktur DB Rekap
+      const dbRekap = {};
+
+      rekapAbsen.forEach(item => {
+        if (!item.tanggal || !item.nisn) return;
+
+        let d;
+        const strTgl = String(item.tanggal).trim();
+
+        // Parse Tanggal Format YYYY-MM-DD
+        if (strTgl.includes('-')) {
+          const p = strTgl.split('T')[0].split('-');
+          d = new Date(parseInt(p[0]), parseInt(p[1]) - 1, parseInt(p[2]));
+        } else if (strTgl.includes('/')) {
+          const p = strTgl.split('/');
+          d = new Date(parseInt(p[2]), parseInt(p[1]) - 1, parseInt(p[0]));
+        } else {
+          d = new Date(strTgl);
+        }
+
+        if (isNaN(d.getTime())) return;
+
+        const nisnKey = String(item.nisn).trim();
+        const tahun = d.getFullYear();
+        const bulanIdx = d.getMonth();
+        const tgl = d.getDate();
+        const dayOfWeek = d.getDay();
+
+        const mingguKe = Math.min(Math.ceil(tgl / 7), 4);
+
+        if (!dbRekap[nisnKey]) dbRekap[nisnKey] = {};
+        if (!dbRekap[nisnKey][tahun]) dbRekap[nisnKey][tahun] = {};
+        if (!dbRekap[nisnKey][tahun][bulanIdx]) dbRekap[nisnKey][tahun][bulanIdx] = {};
+        if (!dbRekap[nisnKey][tahun][bulanIdx][mingguKe]) dbRekap[nisnKey][tahun][bulanIdx][mingguKe] = {};
+
+        if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+          dbRekap[nisnKey][tahun][bulanIdx][mingguKe][dayOfWeek] = item.status || "Hadir";
+        }
+      });
+
+      const currentYear = 2026;
+
+      // 3. Render Setiap Siswa
+      masterSiswa.forEach((siswa, index) => {
+        const nisnStr = String(siswa.nisn).trim();
+        const riwayatSiswa = rekapAbsen.filter(r => String(r.nisn).trim() === nisnStr);
+        
+        const totalHadir = riwayatSiswa.filter(r => r.status === 'Hadir' || r.status === 'Terlambat').length;
+        
+        // Rumus Persentase yang Benar
+        const persen = Math.round((totalHadir / totalHariEfektif) * 100);
+
+        let html = `
+          <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 shadow-lg item-siswa">
+            <div class="flex justify-between items-center cursor-pointer select-none" onclick="toggleAcc('acc-siswa-${index}')">
+              <div>
+                <h3 class="font-bold text-base text-white nama-siswa">${index + 1}. ${siswa.nama}</h3>
+                <p class="text-xs text-slate-400">NISN: <span class="nisn-siswa">${siswa.nisn}</span></p>
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="${persen >= 75 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'} text-xs px-2.5 py-1 rounded-lg font-bold border">
+                  ${persen}% Kehadiran
+                </span>
+                <span id="icon-acc-siswa-${index}" class="text-slate-400 text-xs">▼</span>
+              </div>
+            </div>
+
+            <div id="acc-siswa-${index}" class="hidden mt-4 pt-4 border-t border-slate-700/60 space-y-3">
+              <div class="bg-slate-900 border border-slate-700/80 rounded-xl p-3">
+                <div class="font-bold text-xs text-amber-400 flex justify-between items-center cursor-pointer select-none" onclick="toggleAcc('acc-tahun-${index}')">
+                  <span>📅 Tahun ${currentYear}</span>
+                  <span id="icon-acc-tahun-${index}">▼</span>
+                </div>
+
+                <div id="acc-tahun-${index}" class="hidden mt-3 space-y-2">
+        `;
+
+        namaBulanList.forEach((bulan, mIdx) => {
+          html += `
+            <div class="bg-slate-800 border border-slate-700/50 rounded-lg p-2.5">
+              <div class="text-xs font-semibold text-blue-400 flex justify-between items-center cursor-pointer select-none" onclick="toggleAcc('acc-bln-${index}-${mIdx}')">
+                <span>📆 Bulan ${bulan}</span>
+                <span id="icon-acc-bln-${index}-${mIdx}">▼</span>
+              </div>
+
+              <div id="acc-bln-${index}-${mIdx}" class="hidden mt-2 pt-2 border-t border-slate-700/40 space-y-3">
+          `;
+
+          for (let w = 1; w <= 4; w++) {
+            html += `
+              <div class="bg-slate-900/70 p-2.5 rounded-lg border border-slate-700/30">
+                <div class="text-[11px] font-bold text-amber-300 mb-2">🗓️ Minggu ke-${w}</div>
+                <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
+            `;
+
+            [1, 2, 3, 4, 5].forEach(dayNum => {
+              const hariNama = hariMap[dayNum];
+              let statusText = "-";
+              let badgeStyle = "text-slate-500 bg-slate-800/80 border-slate-700/40";
+
+              if (dbRekap[nisnStr] && 
+                  dbRekap[nisnStr][currentYear] && 
+                  dbRekap[nisnStr][currentYear][mIdx] && 
+                  dbRekap[nisnStr][currentYear][mIdx][w] && 
+                  dbRekap[nisnStr][currentYear][mIdx][w][dayNum]) {
+                
+                statusText = dbRekap[nisnStr][currentYear][mIdx][w][dayNum];
+
+                if (statusText === "Hadir") badgeStyle = "text-emerald-400 bg-emerald-500/10 border-emerald-500/30 font-bold";
+                else if (statusText === "Terlambat") badgeStyle = "text-amber-400 bg-amber-500/10 border-amber-500/30 font-bold";
+                else if (statusText === "Sakit") badgeStyle = "text-blue-400 bg-blue-500/10 border-blue-500/30 font-bold";
+                else if (statusText === "Izin") badgeStyle = "text-purple-400 bg-purple-500/10 border-purple-500/30 font-bold";
+                else if (statusText === "Alpa") badgeStyle = "text-rose-400 bg-rose-500/10 border-rose-500/30 font-bold";
+              }
+
+              html += `
+                <div class="p-2 rounded-lg text-center border ${badgeStyle}">
+                  <span class="block text-[10px] opacity-75">${hariNama}</span>
+                  <span class="text-[11px] mt-0.5 block">${statusText}</span>
+                </div>
+              `;
+            });
+
+            html += `</div></div>`;
+          }
+
+          html += `</div></div>`;
+        });
+
+        html += `
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+
+        container.innerHTML += html;
+      });
+    }
+
+    function toggleAcc(id) {
+      const el = document.getElementById(id);
+      const icon = document.getElementById('icon-' + id);
+      if (el) {
+        el.classList.toggle('hidden');
+        if (icon) icon.innerText = el.classList.contains('hidden') ? '▼' : '▲';
+      }
+    }
+
+    function searchCardSiswa() {
+      const query = document.getElementById('searchSiswaList').value.toLowerCase();
+      const items = document.querySelectorAll('.item-siswa');
+
+      items.forEach(item => {
+        const nama = item.querySelector('.nama-siswa').textContent.toLowerCase();
+        const nisn = item.querySelector('.nisn-siswa').textContent.toLowerCase();
+        item.style.display = (nama.includes(query) || nisn.includes(query)) ? "" : "none";
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', load35Siswa);
+  </script>
+</body>
+</html>
