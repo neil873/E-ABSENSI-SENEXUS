@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rekap Kehadiran Siswa - Senexus</title>
+  <title>Rekap Kehadiran 35 Siswa - Senexus</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen p-4 md:p-6 font-sans">
@@ -14,9 +14,9 @@
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-800 border border-slate-700 p-5 rounded-2xl shadow-xl gap-4">
       <div>
         <h1 class="text-xl font-bold text-amber-400 flex items-center gap-2">
-          <span>👥</span> Rekap Kehadiran List Siswa
+          <span>👥</span> Rekap Kehadiran List 35 Siswa
         </h1>
-        <p class="text-xs text-slate-400 mt-1">Matriks Presensi: Tahun ➔ Bulan ➔ Minggu ➔ Hari (Senin - Jumat)</p>
+        <p class="text-xs text-slate-400 mt-1">Daftar Paten 35 Siswa | Struktur: Tahun ➔ Bulan ➔ Minggu ➔ Hari</p>
       </div>
       <a href="index.html" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1">
         ⬅ Kembali ke Dashboard
@@ -28,7 +28,7 @@
       <div class="relative">
         <input type="text" id="searchSiswaList" 
                class="w-full bg-slate-900 border border-slate-700 text-sm text-slate-200 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-amber-400" 
-               placeholder="Cari NISN atau Nama Siswa..." onkeyup="searchCardSiswa()">
+               placeholder="Cari Nama Siswa..." onkeyup="searchCardSiswa()">
         <span class="absolute left-3 top-3.5 text-slate-400">🔍</span>
       </div>
     </div>
@@ -36,107 +36,122 @@
     <!-- CONTAINER LIST SISWA -->
     <div id="containerListSiswa" class="space-y-4">
       <div class="text-center py-12 text-slate-500 bg-slate-800 border border-slate-700 rounded-2xl">
-        ⏳ Memuat Data Siswa & Memetakan Absensi...
+        ⏳ Memuat 35 Data Siswa & Memetakan Presensi...
       </div>
     </div>
 
   </div>
 
+  <!-- LOAD VARIABLE API_URL DARI DASHBOARD.JS -->
   <script src="dashboard.js"></script>
+  
   <script>
+    // 1. DAFTAR MASTER 35 SISWA PATEN (URUT SAMA SEPERTI DI DATA_SISWA)
+    const masterSiswa35 = [
+      { nama: "ADILLA PANCA MITANO" },
+      { nama: "AGUNG LUTFIANA" },
+      { nama: "AHMAD RAMDANI" },
+      { nama: "AKMAL AZMI ATHALLAH" },
+      { nama: "ANDRI MAULANA" },
+      { nama: "ARINIE RIZKYA PUTRI" },
+      { nama: "ARKHAN MUMTADZ RAMADHAN" },
+      { nama: "DAVIN NIZAR AL JABAR JUANDA" },
+      { nama: "DEVITA FEBRIYANTI MAULIDIA" },
+      { nama: "DIMAS RAMDHANI HARRY MAHARDIKA" },
+      { nama: "DINDA TIARA FITRIANI" },
+      { nama: "DINI TRI HANDAYANI" },
+      { nama: "EFRANDA GISELLA PRAMITHA" },
+      { nama: "FADIEL FADILAH" },
+      { nama: "FARHANUL HUSNA WILIANA" },
+      { nama: "FAZRIL HADAD ASIFA" },
+      { nama: "HIZRA DWI GUNA" },
+      { nama: "IQBAL FATRIA GUMIWANG" },
+      { nama: "JIHAN NURUNNAFISAH" },
+      { nama: "KAYSAN BENZEMA" },
+      { nama: "MUHAMAD BIAN PRAWIRA" },
+      { nama: "MUHAMAD FAHRI ILHAM" },
+      { nama: "MUHAMMAD IKHSAN KHAIRUL AZMI" },
+      { nama: "MUHAMMAD TEUNGKU RAFHA ISMAIL" },
+      { nama: "NAYLA SYIFA FAWWAZYAH" },
+      { nama: "NURUL FAZRIL ARIFIN" },
+      { nama: "RADEVINOV HERU RAMANDA FADILAH" },
+      { nama: "RAIFAL ADITIA NUGRAHA" },
+      { nama: "RAIVANKA AL MUZAQI" },
+      { nama: "REYHAN ARI WIJAYA" },
+      { nama: "RISKI MAULID SIDIQ" },
+      { nama: "RIFAL MUHAMAD ADITYA" },
+      { nama: "ROUDOTUN NISA" },
+      { nama: "SATRIA PUTRA NUR ROCHMAN" },
+      { nama: "SITI SOLIHAH NURPADILLAH" }
+    ];
+
     const namaBulanList = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
     const hariMap = { 1: "Senin", 2: "Selasa", 3: "Rabu", 4: "Kamis", 5: "Jumat" };
 
-    async function load35Siswa() {
-      const container = document.getElementById('containerListSiswa');
+    async function initListSiswa() {
       try {
-        // Cukup panggil getDetailRekap yang terbukti SUDAH JALAN di dashboard.js kamu
-        const resRekap = await fetch(`${API_URL}?action=getDetailRekap`).then(r => r.json());
-        const rekapAbsen = Array.isArray(resRekap) ? resRekap : [];
-
-        if (rekapAbsen.length === 0) {
-          container.innerHTML = `<div class="text-center py-8 text-rose-400 bg-slate-800 border border-slate-700 rounded-2xl">Belum ada data rekap absensi di Google Sheets.</div>`;
-          return;
-        }
-
-        // Ekstrak Master Siswa Unik dari Data Rekap Absen
-        const mapSiswa = new Map();
-        rekapAbsen.forEach(item => {
-          if (item.nisn && !mapSiswa.has(String(item.nisn).trim())) {
-            mapSiswa.set(String(item.nisn).trim(), {
-              nisn: String(item.nisn).trim(),
-              nama: item.nama || "Siswa"
-            });
-          }
-        });
-
-        const masterSiswa = Array.from(mapSiswa.values());
-        renderMatrixUI(masterSiswa, rekapAbsen);
-
+        // Panggil action getDetailRekap yang terbukti SUDAH ADA di dashboard.js kamu
+        const res = await fetch(`${API_URL}?action=getDetailRekap`);
+        const rekapAbsen = await res.json();
+        renderUI(masterSiswa35, Array.isArray(rekapAbsen) ? rekapAbsen : []);
       } catch (err) {
-        console.error("Error loading data:", err);
-        container.innerHTML = `<div class="text-center py-8 text-rose-400 bg-slate-800 border border-slate-700 rounded-2xl">❌ Gagal koneksi ke server Apps Script. Periksa API_URL di dashboard.js!</div>`;
+        console.error("Error loading rekap:", err);
+        renderUI(masterSiswa35, []);
       }
     }
 
-    function renderMatrixUI(masterSiswa, rekapAbsen) {
+    function renderUI(masterSiswa, rekapAbsen) {
       const container = document.getElementById('containerListSiswa');
       container.innerHTML = "";
 
-      // 1. Hitung Total Hari Efektif Sekolah yang sudah tercatat
-      const tanggalUnik = [...new Set(rekapAbsen.map(r => String(r.tanggal).trim()))].filter(Boolean);
-      const totalHariEfektif = tanggalUnik.length > 0 ? tanggalUnik.length : 1;
+      // Hitung Total Hari Efektif Sekolah yang sudah tercatat
+      const tglUnik = [...new Set(rekapAbsen.map(r => String(r.tanggal).split('T')[0]))].filter(Boolean);
+      const totalHariEfektif = tglUnik.length > 0 ? tglUnik.length : 1;
 
-      // 2. Buat Struktur DB Rekap
+      // Map Absensi Berdasarkan NAMA SISWA
       const dbRekap = {};
 
       rekapAbsen.forEach(item => {
-        if (!item.tanggal || !item.nisn) return;
+        if (!item.tanggal || !item.nama) return;
 
-        let d;
-        const strTgl = String(item.tanggal).trim();
-
-        // Parse Tanggal Format YYYY-MM-DD
-        if (strTgl.includes('-')) {
-          const p = strTgl.split('T')[0].split('-');
-          d = new Date(parseInt(p[0]), parseInt(p[1]) - 1, parseInt(p[2]));
-        } else if (strTgl.includes('/')) {
-          const p = strTgl.split('/');
-          d = new Date(parseInt(p[2]), parseInt(p[1]) - 1, parseInt(p[0]));
-        } else {
-          d = new Date(strTgl);
+        const cleanTgl = String(item.tanggal).split('T')[0].trim();
+        let parts = cleanTgl.includes('-') ? cleanTgl.split('-') : cleanTgl.split('/');
+        
+        let year, monthIdx, dayNum;
+        if (parts[0].length === 4) { // YYYY-MM-DD
+          year = parseInt(parts[0]);
+          monthIdx = parseInt(parts[1]) - 1;
+          dayNum = parseInt(parts[2]);
+        } else { // DD/MM/YYYY
+          dayNum = parseInt(parts[0]);
+          monthIdx = parseInt(parts[1]) - 1;
+          year = parseInt(parts[2]);
         }
 
+        const d = new Date(year, monthIdx, dayNum);
         if (isNaN(d.getTime())) return;
 
-        const nisnKey = String(item.nisn).trim();
-        const tahun = d.getFullYear();
-        const bulanIdx = d.getMonth();
-        const tgl = d.getDate();
+        const namaKey = String(item.nama).trim().toUpperCase();
         const dayOfWeek = d.getDay();
+        const mingguKe = Math.min(Math.ceil(dayNum / 7), 4);
 
-        const mingguKe = Math.min(Math.ceil(tgl / 7), 4);
-
-        if (!dbRekap[nisnKey]) dbRekap[nisnKey] = {};
-        if (!dbRekap[nisnKey][tahun]) dbRekap[nisnKey][tahun] = {};
-        if (!dbRekap[nisnKey][tahun][bulanIdx]) dbRekap[nisnKey][tahun][bulanIdx] = {};
-        if (!dbRekap[nisnKey][tahun][bulanIdx][mingguKe]) dbRekap[nisnKey][tahun][bulanIdx][mingguKe] = {};
+        if (!dbRekap[namaKey]) dbRekap[namaKey] = {};
+        if (!dbRekap[namaKey][year]) dbRekap[namaKey][year] = {};
+        if (!dbRekap[namaKey][year][monthIdx]) dbRekap[namaKey][year][monthIdx] = {};
+        if (!dbRekap[namaKey][year][monthIdx][mingguKe]) dbRekap[namaKey][year][monthIdx][mingguKe] = {};
 
         if (dayOfWeek >= 1 && dayOfWeek <= 5) {
-          dbRekap[nisnKey][tahun][bulanIdx][mingguKe][dayOfWeek] = item.status || "Hadir";
+          dbRekap[namaKey][year][monthIdx][mingguKe][dayOfWeek] = item.status || "Hadir";
         }
       });
 
       const currentYear = 2026;
 
-      // 3. Render Setiap Siswa
       masterSiswa.forEach((siswa, index) => {
-        const nisnStr = String(siswa.nisn).trim();
-        const riwayatSiswa = rekapAbsen.filter(r => String(r.nisn).trim() === nisnStr);
+        const namaKey = String(siswa.nama).trim().toUpperCase();
+        const riwayat = rekapAbsen.filter(r => String(r.nama).trim().toUpperCase() === namaKey);
+        const totalHadir = riwayat.filter(r => r.status === 'Hadir' || r.status === 'Terlambat').length;
         
-        const totalHadir = riwayatSiswa.filter(r => r.status === 'Hadir' || r.status === 'Terlambat').length;
-        
-        // Rumus Persentase yang Benar
         const persen = Math.round((totalHadir / totalHariEfektif) * 100);
 
         let html = `
@@ -144,7 +159,6 @@
             <div class="flex justify-between items-center cursor-pointer select-none" onclick="toggleAcc('acc-siswa-${index}')">
               <div>
                 <h3 class="font-bold text-base text-white nama-siswa">${index + 1}. ${siswa.nama}</h3>
-                <p class="text-xs text-slate-400">NISN: <span class="nisn-siswa">${siswa.nisn}</span></p>
               </div>
               <div class="flex items-center gap-3">
                 <span class="${persen >= 75 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'} text-xs px-2.5 py-1 rounded-lg font-bold border">
@@ -187,13 +201,13 @@
               let statusText = "-";
               let badgeStyle = "text-slate-500 bg-slate-800/80 border-slate-700/40";
 
-              if (dbRekap[nisnStr] && 
-                  dbRekap[nisnStr][currentYear] && 
-                  dbRekap[nisnStr][currentYear][mIdx] && 
-                  dbRekap[nisnStr][currentYear][mIdx][w] && 
-                  dbRekap[nisnStr][currentYear][mIdx][w][dayNum]) {
+              if (dbRekap[namaKey] && 
+                  dbRekap[namaKey][currentYear] && 
+                  dbRekap[namaKey][currentYear][mIdx] && 
+                  dbRekap[namaKey][currentYear][mIdx][w] && 
+                  dbRekap[namaKey][currentYear][mIdx][w][dayNum]) {
                 
-                statusText = dbRekap[nisnStr][currentYear][mIdx][w][dayNum];
+                statusText = dbRekap[namaKey][currentYear][mIdx][w][dayNum];
 
                 if (statusText === "Hadir") badgeStyle = "text-emerald-400 bg-emerald-500/10 border-emerald-500/30 font-bold";
                 else if (statusText === "Terlambat") badgeStyle = "text-amber-400 bg-amber-500/10 border-amber-500/30 font-bold";
@@ -242,12 +256,11 @@
 
       items.forEach(item => {
         const nama = item.querySelector('.nama-siswa').textContent.toLowerCase();
-        const nisn = item.querySelector('.nisn-siswa').textContent.toLowerCase();
-        item.style.display = (nama.includes(query) || nisn.includes(query)) ? "" : "none";
+        item.style.display = nama.includes(query) ? "" : "none";
       });
     }
 
-    document.addEventListener('DOMContentLoaded', load35Siswa);
+    document.addEventListener('DOMContentLoaded', initListSiswa);
   </script>
 </body>
 </html>

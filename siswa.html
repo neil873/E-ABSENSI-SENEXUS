@@ -18,15 +18,20 @@
   <div class="max-w-4xl mx-auto w-full space-y-6">
 
     <!-- NAVBAR SISWA -->
-    <div class="flex justify-between items-center bg-slate-800 border border-slate-700 p-4 rounded-2xl">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-800 border border-slate-700 p-4 rounded-2xl gap-4">
       <div>
         <p class="text-xs text-slate-400">Selamat datang,</p>
         <h2 id="nama-siswa" class="text-lg font-bold text-emerald-400">-</h2>
         <p id="nisn-siswa" class="text-[10px] text-slate-500">NISN: -</p>
       </div>
-      <button onclick="logoutSiswa()" class="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 px-3 py-1.5 rounded-xl text-xs font-semibold">
-        🚪 Keluar
-      </button>
+      <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+        <button onclick="toggleModalIzin(true)" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-xl text-xs font-semibold transition shadow-md">
+          📝 Ajukan Sakit / Izin
+        </button>
+        <button onclick="logoutSiswa()" class="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 px-3 py-1.5 rounded-xl text-xs font-semibold transition">
+          🚪 Keluar
+        </button>
+      </div>
     </div>
 
     <!-- STATISTIK PERIODIK (TABEL & PERSENTASE) -->
@@ -104,6 +109,36 @@
 
   </div>
 
+  <!-- MODAL / POPUP PENGAJUAN IZIN ATAU SAKIT -->
+  <div id="modalIzin" class="fixed inset-0 bg-black/70 flex items-center justify-center p-4 hidden z-50">
+    <div class="bg-slate-800 border border-slate-700 w-full max-w-md p-6 rounded-2xl space-y-4 shadow-2xl">
+      <h3 class="font-bold text-white text-base">Form Pengajuan Sakit / Izin</h3>
+      
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Status Pengajuan:</label>
+          <select id="inputStatusIzin" class="w-full bg-slate-900 border border-slate-700 text-xs text-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-blue-500">
+            <option value="Sakit">Sakit</option>
+            <option value="Izin">Izin</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Keterangan / Alasan:</label>
+          <textarea id="inputKeteranganIzin" rows="3" class="w-full bg-slate-900 border border-slate-700 text-xs text-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-blue-500" placeholder="Tuliskan alasan atau keterangan..."></textarea>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="toggleModalIzin(false)" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-4 py-2 rounded-xl text-xs font-semibold transition">
+          Batal
+        </button>
+        <button onclick="kirimPengajuanIzin()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition">
+          Kirim Pengajuan
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbzUNayLthLLRwfms4CQHTqTKj3lKhyrhWwb7mOIbMHEIM4HkC0jbwVgy-MYJaV1WxNXcQ/exec";
 
@@ -119,43 +154,96 @@
         .then(data => {
           // Fill Mingguan
           fillStats('m', data.mingguan);
-          document.getElementById('p-minggu').innerText = data.mingguan.persentase + "% Kehadiran";
+          document.getElementById('p-minggu').innerText = (data.mingguan.persentase || 0) + "% Kehadiran";
 
           // Fill Bulanan
           fillStats('b', data.bulanan);
-          document.getElementById('p-bulan').innerText = data.bulanan.persentase + "% Kehadiran";
+          document.getElementById('p-bulan').innerText = (data.bulanan.persentase || 0) + "% Kehadiran";
 
           // Fill Tahunan
           fillStats('t', data.tahunan);
-          document.getElementById('p-tahun').innerText = data.tahunan.persentase + "% Kehadiran";
+          document.getElementById('p-tahun').innerText = (data.tahunan.persentase || 0) + "% Kehadiran";
 
           // Fill Tabel
           const tbody = document.getElementById("tabel-riwayat-body");
           tbody.innerHTML = "";
 
-          if (data.riwayat.length === 0) {
+          if (!data.riwayat || data.riwayat.length === 0) {
             tbody.innerHTML = `<tr><td colspan="3" class="text-center py-6 text-slate-500">Belum ada riwayat absensi.</td></tr>`;
             return;
           }
 
           data.riwayat.forEach(item => {
+            let badgeColor = "text-slate-400";
+            if (item.status === "Hadir") badgeColor = "text-emerald-400 font-bold";
+            else if (item.status === "Terlambat") badgeColor = "text-amber-400 font-bold";
+            else if (item.status === "Sakit") badgeColor = "text-blue-400 font-bold";
+            else if (item.status === "Izin") badgeColor = "text-purple-400 font-bold";
+            else if (item.status === "Alpa") badgeColor = "text-rose-400 font-bold";
+
             tbody.innerHTML += `
               <tr class="hover:bg-slate-700/30">
                 <td class="px-4 py-3">${item.tanggal}<br><span class="text-[10px] text-slate-500">${item.waktu}</span></td>
-                <td class="px-4 py-3 font-semibold">${item.status}</td>
+                <td class="px-4 py-3 ${badgeColor}">${item.status}</td>
                 <td class="px-4 py-3 text-slate-400">${item.keterangan || "-"}</td>
               </tr>
             `;
           });
-        });
+        })
+        .catch(err => console.error("Gagal memuat data siswa:", err));
     }
 
     function fillStats(prefix, statsObj) {
+      if (!statsObj) return;
       document.getElementById(`${prefix}-hadir`).innerText = statsObj.hadir || 0;
       document.getElementById(`${prefix}-terlambat`).innerText = statsObj.terlambat || 0;
       document.getElementById(`${prefix}-sakit`).innerText = statsObj.sakit || 0;
       document.getElementById(`${prefix}-izin`).innerText = statsObj.izin || 0;
       document.getElementById(`${prefix}-alpa`).innerText = statsObj.alpa || 0;
+    }
+
+    // Fungsi Kontrol Modal Pengajuan Izin/Sakit
+    function toggleModalIzin(show) {
+      const modal = document.getElementById("modalIzin");
+      if (show) {
+        modal.classList.remove("hidden");
+      } else {
+        modal.classList.add("hidden");
+        document.getElementById("inputKeteranganIzin").value = "";
+      }
+    }
+
+    // Fungsi Kirim Pengajuan ke Backend Apps Script
+    function kirimPengajuanIzin() {
+      const status = document.getElementById("inputStatusIzin").value;
+      const keterangan = document.getElementById("inputKeteranganIzin").value;
+
+      if (!keterangan.trim()) {
+        alert("Harap isi keterangan atau alasan pengajuan!");
+        return;
+      }
+
+      const payload = {
+        action: "ajukanIzinSiswa",
+        nisn: nisn,
+        status: status,
+        keterangan: keterangan
+      };
+
+      fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify(payload)
+      })
+      .then(res => res.json())
+      .then(res => {
+        alert(res.message || "Berhasil mengajukan izin!");
+        toggleModalIzin(false);
+        loadSiswaData(); // Refresh data otomatis setelah kirim
+      })
+      .catch(err => {
+        console.error("Error:", err);
+        alert("Gagal mengirim pengajuan.");
+      });
     }
 
     function logoutSiswa() {

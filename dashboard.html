@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard Admin - E-Absensi</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Masukkan Chart.js untuk grafik doughnut -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   
   <script>
     if (localStorage.getItem("isLoggedIn") !== "true" || !localStorage.getItem("sessionToken")) {
@@ -21,11 +23,10 @@
       <h1 class="font-bold text-base sm:text-lg text-white">DASHBOARD <span class="text-emerald-400">ADMIN</span></h1>
     </div>
 
-    <div class="flex items-center space-x-2 sm:space-x-4">
-     <!-- Tambahkan tombol ini di header dashboard.html -->
-<a href="scanner.html" class="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-3 py-2 rounded-xl text-xs transition flex items-center gap-1">
-  📷 Buka Kios Scanner
-</a>
+    <div class="flex items-center space-x-2 sm:space-x-3">
+      <a href="scanner.html" class="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-3 py-2 rounded-xl text-xs transition flex items-center gap-1">
+        📷 Buka Kios Scanner
+      </a>
       <button onclick="logout()" class="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition">
         🚪 Logout
       </button>
@@ -40,12 +41,32 @@
         <h2 class="text-xl sm:text-2xl font-bold text-white">Ringkasan Absensi</h2>
         <p class="text-xs text-slate-400">Kelola dan pantau data kehadiran siswa real-time</p>
       </div>
-      <button onclick="loadDashboardData()" class="self-start sm:self-auto bg-slate-800 hover:bg-slate-700 border border-slate-600 px-3 py-1.5 rounded-xl text-xs font-medium transition flex items-center gap-2">
-        🔄 Refresh Data
-      </button>
+      <div class="flex items-center gap-2">
+        <select id="pilihBulanCsv" class="bg-slate-900 border border-slate-700 text-xs text-slate-200 rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-blue-500">
+            <option value="all">Semua Bulan / Total</option>
+            <option value="01">Januari</option>
+            <option value="02">Februari</option>
+            <option value="03">Maret</option>
+            <option value="04">April</option>
+            <option value="05">Mei</option>
+            <option value="06">Juni</option>
+            <option value="07">Juli</option>
+            <option value="08" selected>Agustus (Bulan Ini)</option>
+            <option value="09">September</option>
+            <option value="10">Oktober</option>
+            <option value="11">November</option>
+            <option value="12">Desember</option>
+          </select>
+          <button onclick="exportCSV()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 shadow-md">
+            📥 Download Rekap (.csv)
+          </button>
+        <button onclick="loadDashboardData()" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 px-3 py-1.5 rounded-xl text-xs font-medium transition flex items-center gap-2">
+          🔄 Refresh
+        </button>
+      </div>
     </div>
 
-    <!-- CARDS STATISTIK (2 Kolom di HP, 6 Kolom di Desktop) -->
+    <!-- CARDS STATISTIK ANGKA -->
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-4">
       <div class="bg-slate-800/90 border border-slate-700 p-3 sm:p-4 rounded-2xl">
         <p class="text-[10px] sm:text-xs text-slate-400 font-medium">Total Absen</p>
@@ -73,11 +94,77 @@
       </div>
     </div>
 
-    <!-- TABEL REKAP ABSENSI SISWA -->
+    <!-- PANEL UTAMA: INPUT MANUAL & GRAFIK STATISTIK (2 Kolom) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      
+      <!-- Kolom 1: Form Input Absen Manual -->
+      <div class="bg-slate-800 border border-slate-700 p-4 rounded-2xl space-y-3 shadow-md flex flex-col justify-between">
+        <div>
+          <h3 class="font-bold text-sm text-amber-400 mb-3">📝 Input / Koreksi Absen Manual</h3>
+          <div class="space-y-2">
+            <div>
+              <label class="block text-[10px] text-slate-400 mb-1">Pilih Tanggal Absen:</label>
+              <input type="date" id="manualTanggal" class="w-full bg-slate-900 border border-slate-700 text-xs text-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-amber-400">
+            </div>
+            <div>
+              <label class="block text-[10px] text-slate-400 mb-1">Pilih Siswa:</label>
+              <select id="manualNisn" class="w-full bg-slate-900 border border-slate-700 text-xs text-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-amber-400">
+                <option value="">-- Muat Daftar Siswa --</option>
+              </select>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-[10px] text-slate-400 mb-1">Status Kehadiran:</label>
+                <select id="manualStatus" class="w-full bg-slate-900 border border-slate-700 text-xs text-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-amber-400">
+                  <option value="Hadir">Hadir</option>
+                  <option value="Terlambat">Terlambat</option>
+                  <option value="Sakit">Sakit</option>
+                  <option value="Izin">Izin</option>
+                  <option value="Alpa">Alpa</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-[10px] text-slate-400 mb-1">Keterangan:</label>
+                <input type="text" id="manualKeterangan" placeholder="Opsional..." class="w-full bg-slate-900 border border-slate-700 text-xs text-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-amber-400">
+              </div>
+            </div>
+          </div>
+        </div>
+        <button onclick="simpanAbsenManual()" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs transition mt-3">
+          Simpan Absen Manual
+        </button>
+      </div>
+
+      <!-- Kolom 2: Grafik Statistik Doughnut (Mirip Referensi) -->
+      <div class="bg-slate-800 border border-slate-700 p-4 rounded-2xl space-y-3 shadow-md flex flex-col justify-between">
+        <div class="flex justify-between items-center border-b border-slate-700 pb-2">
+          <h3 class="font-bold text-sm text-emerald-400">📊 Proporsi Status Kehadiran</h3>
+          <span id="badge-persen-global" class="bg-emerald-500/10 text-emerald-400 text-xs px-2 py-0.5 rounded font-bold">0%</span>
+        </div>
+        <!-- Kanvas Grafik -->
+        <div class="relative h-48 w-full flex justify-center items-center">
+          <canvas id="adminGrafikStatistik"></canvas>
+        </div>
+        <p class="text-[10px] text-slate-400 text-center">Visualisasi perbandingan total status kehadiran keseluruhan</p>
+      </div>
+
+    </div>
+
+    <!-- TABEL REKAP ABSENSI SISWA + SEARCH BAR -->
     <div class="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden shadow-xl">
-      <div class="p-4 border-b border-slate-700 flex justify-between items-center">
-        <h3 class="font-bold text-sm sm:text-base text-white">📋 Data Rekap Harian</h3>
-        <span class="text-xs text-slate-400">Geser tabel untuk selengkapnya $\rightarrow$</span>
+      <div class="p-4 border-b border-slate-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+        <div>
+          <h3 class="font-bold text-sm sm:text-base text-white">📋 Data Rekap Harian</h3>
+          <p class="text-[10px] text-slate-400">*Pantau dan cari data log absensi masuk</p>
+        </div>
+        
+        <!-- Search Bar Admin -->
+        <div class="relative w-full sm:w-64">
+          <input type="text" id="searchAdminTabel" 
+                 class="w-full bg-slate-900 border border-slate-700 text-xs text-slate-200 rounded-xl pl-8 pr-3 py-2 focus:outline-none focus:border-emerald-400" 
+                 placeholder="Cari nama / NISN / status..." onkeyup="filterAdminTabel()">
+          <span class="absolute left-2.5 top-2.5 text-slate-500 text-xs">🔍</span>
+        </div>
       </div>
 
       <!-- Container Scroll Horizontal untuk Mobile -->
@@ -104,5 +191,157 @@
   </main>
 
   <script src="dashboard.js"></script>
+  <script>
+    let adminChartInstance = null;
+
+    // Set default tanggal hari ini & load list siswa
+    document.addEventListener("DOMContentLoaded", () => {
+      const today = new Date().toISOString().split('T')[0];
+      const dateInput = document.getElementById("manualTanggal");
+      if(dateInput) dateInput.value = today;
+
+      // Ambil list siswa untuk dropdown input manual
+      fetch(`${API_URL}?action=getAllSiswa`)
+        .then(res => res.json())
+        .then(data => {
+          const select = document.getElementById("manualNisn");
+          if(select && Array.isArray(data)) {
+            select.innerHTML = '<option value="">-- Pilih Siswa --</option>';
+            data.forEach(s => {
+              select.innerHTML += `<option value="${s.nisn}">${s.nama} (${s.nisn})</option>`;
+            });
+          }
+        })
+        .catch(err => console.error("Gagal load list siswa:", err));
+
+      // Muat data grafik awal
+      loadAdminChart();
+    });
+
+    // Fungsi Render Grafik Doughnut di Admin
+    function loadAdminChart() {
+      fetch(`${API_URL}?action=getRekap`)
+        .then(res => res.json())
+        .then(data => {
+          const hadir = data.hadir || 0;
+          const terlambat = data.terlambat || 0;
+          const sakit = data.sakit || 0;
+          const izin = data.izin || 0;
+          const alpa = data.alpa || 0;
+          const total = data.total || 1; // Hindari bagi 0
+
+          const persenHadir = Math.round(((hadir + terlambat) / total) * 100);
+          document.getElementById("badge-persen-global").innerText = persenHadir + "% Kehadiran";
+
+          const ctx = document.getElementById('adminGrafikStatistik').getContext('2d');
+          
+          if (adminChartInstance) {
+            adminChartInstance.destroy();
+          }
+
+          adminChartInstance = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+              labels: ['Hadir', 'Terlambat', 'Sakit', 'Izin', 'Alpa'],
+              datasets: [{
+                data: [hadir, terlambat, sakit, izin, alpa],
+                backgroundColor: [
+                  '#14b8a6', // Teal / Hadir
+                  '#f59e0b', // Amber / Terlambat
+                  '#38bdf8', // Biru / Sakit
+                  '#c084fc', // Ungu / Izin
+                  '#f43f5e'  // Merah / Alpa
+                ],
+                borderWidth: 0,
+                hoverOffset: 6
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              cutout: '50%',
+              plugins: {
+                legend: {
+                  position: 'bottom',
+                  labels: {
+                    color: '#cbd5e1',
+                    font: { size: 10 },
+                    padding: 10
+                  }
+                }
+              }
+            }
+          });
+        })
+        .catch(err => console.error("Gagal memuat grafik admin:", err));
+    }
+
+    // Override / Tambahan fungsi load data agar grafik juga ikut ter-refresh saat tombol refresh ditekan
+    const originalLoadDashboardData = window.loadDashboardData;
+    // (Jika dashboard.js mendefinisikan loadDashboardData, kita panggil loadAdminChart di dalamnya juga)
+
+    // Fungsi Filter Search Tabel Admin
+    function filterAdminTabel() {
+      const input = document.getElementById("searchAdminTabel");
+      const filter = input.value.toLowerCase();
+      const tbody = document.getElementById("tabel-rekap-body");
+      const rows = tbody.getElementsByTagName("tr");
+
+      for (let i = 0; i < rows.length; i++) {
+        const text = rows[i].textContent || rows[i].innerText;
+        rows[i].style.display = text.toLowerCase().includes(filter) ? "" : "none";
+      }
+    }
+
+  // Fungsi Simpan Absen Manual
+    function simpanAbsenManual() {
+      const tanggal = document.getElementById("manualTanggal").value;
+      const selectSiswa = document.getElementById("manualNisn");
+      const nisn = selectSiswa.value;
+      
+      // Ambil teks nama dari dropdown yang dipilih (misal: "NAMA SISWA (12345)")
+      const selectedText = selectSiswa.options[selectSiswa.selectedIndex].text;
+      const nama = selectedText.split(" (")[0]; // Ambil bagian namanya saja
+
+      const status = document.getElementById("manualStatus").value;
+      const keterangan = document.getElementById("manualKeterangan").value;
+
+      if (!tanggal || !nisn) {
+        alert("Tanggal dan Siswa wajib diisi!");
+        return;
+      }
+
+      const payload = {
+        action: "absenManual",
+        tanggal: tanggal,
+        nisn: nisn,
+        nama: nama, // <-- Sekarang nama ikut dikirim ke backend
+        status: status,
+        keterangan: keterangan
+      };
+
+      fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(payload)
+      })
+      .then(res => res.json())
+      .then(res => {
+        alert(res.message || "Absen manual berhasil disimpan!");
+        document.getElementById("manualKeterangan").value = "";
+        loadDashboardData();
+        loadAdminChart(); // Refresh grafik juga
+      })
+      .catch(err => {
+        console.error("Error:", err);
+        alert("Gagal menyimpan absen manual.");
+      });
+    }
+
+    function exportCSV() {
+      const bulan = document.getElementById("pilihBulanCsv").value;
+      window.location.href = `${API_URL}?action=exportRekapCSV&bulan=${bulan}`;
+    }
+  </script>
 </body>
 </html>

@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sistem Informasi Absensi Sekolah</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans p-4">
 
@@ -18,8 +19,8 @@
         </h1>
         <p class="text-xs text-slate-400">Ringkasan statistik dan rekapitulasi presensi harian</p>
       </div>
-      <a href="login.html" class="bg-emerald-500 hover:bg-emerald-600 text-slate-950 px-4 py-2 rounded-xl text-xs font-bold transition">
-        🔐 Masuk Portal / Scan
+      <a href="login.html" class="bg-emerald-500 hover:bg-emerald-600 text-slate-950 px-2 py-4 rounded-xl text-xs font-bold transition">
+        🔐DASHBOARD ADMIN
       </a>
     </div>
 
@@ -32,12 +33,9 @@
           <h3 class="font-bold text-sm text-amber-400">📅 Stat. 7 Hari Terakhir</h3>
           <span id="pub-p-minggu" class="bg-amber-500/10 text-amber-400 text-xs px-2 py-0.5 rounded font-bold">0%</span>
         </div>
-        <div class="grid grid-cols-2 gap-2 text-xs text-slate-300">
-          <div>Hadir: <b id="pub-m-hadir" class="text-emerald-400">0</b></div>
-          <div>Terlambat: <b id="pub-m-terlambat" class="text-amber-400">0</b></div>
-          <div>Sakit: <b id="pub-m-sakit" class="text-blue-400">0</b></div>
-          <div>Izin: <b id="pub-m-izin" class="text-purple-400">0</b></div>
-          <div class="col-span-2">Alpa: <b id="pub-m-alpa" class="text-rose-400">0</b></div>
+       <!-- Ini Kanvas untuk Grafiknya -->
+        <div class="relative h-48 w-full flex justify-center">
+           <canvas id="grafikMingguan"></canvas>
         </div>
       </div>
 
@@ -122,76 +120,142 @@
 
   <script src="dashboard.js"></script>
   <script>
-    function loadPublicData() {
-      fetch(`${API_URL}?action=getDetailRekap`)
-        .then(res => res.json())
-        .then(data => {
-          const tbody = document.getElementById("tabel-publik-body");
-          tbody.innerHTML = "";
+  // Siapkan variabel kosong agar grafik tidak bertumpuk kalau halaman di-refresh
+  let chartMingguan; 
 
-          if (!data || data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-slate-500">Belum ada data absensi.</td></tr>`;
-            return;
-          }
+  function loadPublicData() {
+    // 1. Ambil Data Detail Siswa (Tabel Bawah)
+    fetch(`${API_URL}?action=getDetailRekap`)
+      .then(res => res.json())
+      .then(data => {
+        const tbody = document.getElementById("tabel-publik-body");
+        tbody.innerHTML = "";
 
-          data.forEach(item => {
-            let badgeColor = "text-slate-400";
-            if (item.status === "Hadir") badgeColor = "text-emerald-400 font-bold";
-            else if (item.status === "Terlambat") badgeColor = "text-amber-400 font-bold";
-            else if (item.status === "Sakit") badgeColor = "text-blue-400 font-bold";
-            else if (item.status === "Izin") badgeColor = "text-purple-400 font-bold";
-            else if (item.status === "Alpa") badgeColor = "text-rose-400 font-bold";
+        if (!data || data.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-slate-500">Belum ada data absensi.</td></tr>`;
+          return;
+        }
 
-            tbody.innerHTML += `
-              <tr class="hover:bg-slate-700/30 transition">
-                <td class="px-4 py-3">${item.tanggal}<br><span class="text-[10px] text-slate-500">${item.waktu}</span></td>
-                <td class="px-4 py-3 font-semibold text-white">${item.nama}<br><span class="text-[10px] text-slate-400">${item.nisn}</span></td>
-                <td class="px-4 py-3 ${badgeColor}">${item.status}</td>
-                <td class="px-4 py-3 text-slate-300">${item.keterangan || "-"}</td>
-              </tr>
-            `;
-          });
-        })
-        .catch(err => console.error("Error loading detail:", err));
+        data.forEach(item => {
+          let badgeColor = "text-slate-400";
+          if (item.status === "Hadir") badgeColor = "text-emerald-400 font-bold";
+          else if (item.status === "Terlambat") badgeColor = "text-amber-400 font-bold";
+          else if (item.status === "Sakit") badgeColor = "text-blue-400 font-bold";
+          else if (item.status === "Izin") badgeColor = "text-purple-400 font-bold";
+          else if (item.status === "Alpa") badgeColor = "text-rose-400 font-bold";
 
-      fetch(`${API_URL}?action=getGlobalRekap`)
-        .then(res => res.json())
-        .then(res => {
-          if (!res || !res.mingguan) return;
-          fillStatsUI('pub-m', res.mingguan);
-          document.getElementById('pub-p-minggu').innerText = (res.mingguan.persentase || 0) + "% Kehadiran";
+          tbody.innerHTML += `
+            <tr class="hover:bg-slate-700/30 transition">
+              <td class="px-4 py-3">${item.tanggal}<br><span class="text-[10px] text-slate-500">${item.waktu}</span></td>
+              <td class="px-4 py-3 font-semibold text-white">${item.nama}<br><span class="text-[10px] text-slate-400">${item.nisn}</span></td>
+              <td class="px-4 py-3 ${badgeColor}">${item.status}</td>
+              <td class="px-4 py-3 text-slate-300">${item.keterangan || "-"}</td>
+            </tr>
+          `;
+        });
+      })
+      .catch(err => console.error("Error loading detail:", err));
 
-          fillStatsUI('pub-b', res.bulanan);
-          document.getElementById('pub-p-bulan').innerText = (res.bulanan.persentase || 0) + "% Kehadiran";
+    // 2. Ambil Data Statistik Global (Kartu Atas)
+    fetch(`${API_URL}?action=getGlobalRekap`)
+      .then(res => res.json())
+      .then(res => {
+        if (!res) return;
 
-          fillStatsUI('pub-t', res.tahunan);
-          document.getElementById('pub-p-tahun').innerText = (res.tahunan.persentase || 0) + "% Kehadiran";
-        })
-        .catch(err => console.error("Error loading rekap:", err));
+        // --- UPDATE DATA KARTU BULAN & TAHUN ---
+        if (res.bulanan) {
+            fillStatsUI('pub-b', res.bulanan);
+            document.getElementById('pub-p-bulan').innerText = (res.bulanan.persentase || 0) + "% Kehadiran";
+        }
+        if (res.tahunan) {
+            fillStatsUI('pub-t', res.tahunan);
+            document.getElementById('pub-p-tahun').innerText = (res.tahunan.persentase || 0) + "% Kehadiran";
+        }
+
+        // --- UPDATE DATA KARTU MINGGUAN (JADI GRAFIK) ---
+        if (res.mingguan) {
+            document.getElementById('pub-p-minggu').innerText = (res.mingguan.persentase || 0) + "% Kehadiran";
+            
+            const kanvasMingguan = document.getElementById('grafikMingguan');
+            
+         // Gambar ulang grafiknya dengan style baru
+            chartMingguan = new Chart(kanvasMingguan, {
+              type: 'doughnut',
+              data: {
+                labels: ['Hadir', 'Terlambat', 'Sakit', 'Izin', 'Alpa'],
+                datasets: [{
+                  data: [
+                    res.mingguan.hadir || 0,
+                    res.mingguan.terlambat || 0,
+                    res.mingguan.sakit || 0,
+                    res.mingguan.izin || 0,
+                    res.mingguan.alpa || 0
+                  ],
+                  // WARNA DIUBAH MENYESUAIKAN GAMBAR
+                  backgroundColor: [
+                    '#14b8a6', // Teal/Hijau Tosca (porsi paling besar)
+                    '#ffffff', // Putih 
+                    '#38bdf8', // Biru Muda
+                    '#a3e635', // Hijau Muda
+                    '#475569'  // Abu-abu gelap (untuk Alpa, agar tidak merusak tema)
+                  ],
+                  borderWidth: 0,
+                  hoverOffset: 6 // Efek membesar saat disentuh mouse
+                }]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '45%', // RAHASIA KETEBALAN: Mengatur besaran lubang tengah
+                plugins: {
+                  legend: { 
+                    position: 'bottom', // Dipindah ke bawah agar grafik bisa lebih besar di tengah
+                    labels: { 
+                      color: '#cbd5e1', 
+                      font: { size: 11, family: 'sans-serif' },
+                      padding: 15
+                    } 
+                  },
+                  tooltip: {
+                    backgroundColor: '#1e293b',
+                    titleColor: '#f8fafc',
+                    bodyColor: '#f8fafc',
+                    padding: 10,
+                    cornerRadius: 8
+                  }
+                }
+              }
+            });
+        }
+      })
+      .catch(err => console.error("Error loading rekap:", err));
+  }
+
+  // Fungsi tambahan untuk tabel
+  function filterTabel(inputId, tableBodyId) {
+    const input = document.getElementById(inputId);
+    const filter = input.value.toLowerCase();
+    const tbody = document.getElementById(tableBodyId);
+    const rows = tbody.getElementsByTagName('tr');
+
+    for (let i = 0; i < rows.length; i++) {
+      const text = rows[i].textContent || rows[i].innerText;
+      rows[i].style.display = text.toLowerCase().includes(filter) ? "" : "none";
     }
+  }
 
-    function filterTabel(inputId, tableBodyId) {
-      const input = document.getElementById(inputId);
-      const filter = input.value.toLowerCase();
-      const tbody = document.getElementById(tableBodyId);
-      const rows = tbody.getElementsByTagName('tr');
+  // Fungsi untuk mengisi teks di kartu bulan dan tahun
+  function fillStatsUI(prefix, obj) {
+    if (!obj) return;
+    document.getElementById(`${prefix}-hadir`).innerText = obj.hadir || 0;
+    document.getElementById(`${prefix}-terlambat`).innerText = obj.terlambat || 0;
+    document.getElementById(`${prefix}-sakit`).innerText = obj.sakit || 0;
+    document.getElementById(`${prefix}-izin`).innerText = obj.izin || 0;
+    document.getElementById(`${prefix}-alpa`).innerText = obj.alpa || 0;
+  }
 
-      for (let i = 0; i < rows.length; i++) {
-        const text = rows[i].textContent || rows[i].innerText;
-        rows[i].style.display = text.toLowerCase().includes(filter) ? "" : "none";
-      }
-    }
-
-    function fillStatsUI(prefix, obj) {
-      if (!obj) return;
-      document.getElementById(`${prefix}-hadir`).innerText = obj.hadir || 0;
-      document.getElementById(`${prefix}-terlambat`).innerText = obj.terlambat || 0;
-      document.getElementById(`${prefix}-sakit`).innerText = obj.sakit || 0;
-      document.getElementById(`${prefix}-izin`).innerText = obj.izin || 0;
-      document.getElementById(`${prefix}-alpa`).innerText = obj.alpa || 0;
-    }
-
-    document.addEventListener("DOMContentLoaded", loadPublicData);
-  </script>
+  // Jalankan semua saat halaman pertama kali dibuka
+  document.addEventListener("DOMContentLoaded", loadPublicData);
+</script>
 </body>
 </html> 
